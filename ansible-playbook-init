@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# ansible-playbook-init
+working_dir=$(basename "${1}")
+
+function usage () {
+	echo "usage ./ansible-playbook-init <playboook>"
+	exit 1
+}
+
+if ! [  $# -eq 1 ]; then 
+	usage;
+fi
+
+if [ -d $1 ]; then 
+  echo -e "\n[Error] - Playbook $1 already exists\n"
+  exit 1
+fi
+
+
+if ! [ `which gem` ]; then 
+  echo "please install gem to continue"
+  exit 1
+fi
+
+if ! [ `which bundler` ]; then 
+gem install bundler
+fi
+
+## dir structure
+mkdir -p $1/group_vars $1/tasks $1/templates
+touch $1/hosts $1/group_vars/main.yml $1/tasks/main.yml
+
+cat <<EOF > $1/.gitignore
+*.lock
+tmp
+roles
+EOF
+
+if ! [ -f $1/Readme.md ]; then 
+cat <<EOF > $1/Readme.md
+## $working_dir Playbook 
+EOF
+fi
+
+if ! [ -f $1/Gemfile ]; then
+cat <<EOF > $1/Gemfile
+source "https://rubygems.org"
+gem 'librarian-ansible'
+EOF
+fi
+
+cd $1 && librarian-ansible init
+
+mkdir -p $1/.librarian/ansible
+cat << EOF > $1/.librarian/ansible/config
+---
+LIBRARIAN_ANSIBLE_PATH: ./roles
+EOF
+
+echo "Playbook template created $1:"
